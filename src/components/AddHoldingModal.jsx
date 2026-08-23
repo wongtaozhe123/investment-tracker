@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { uid } from "@/lib/format";
 
-const TYPES = ["stock", "etf", "crypto"];
-const TYPE_LABEL = { stock: "Stock", etf: "ETF", crypto: "Crypto" };
+const TYPES = ["stock-etf", "crypto"];
+const TYPE_LABEL = { "stock-etf": "Stock / ETF", crypto: "Crypto" };
 
 export default function AddHoldingModal({
   open,
@@ -14,7 +14,7 @@ export default function AddHoldingModal({
   onClose,
   onAdd,
 }) {
-  const [type, setType] = useState("stock");
+  const [type, setType] = useState("stock-etf");
   const [symbol, setSymbol] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
@@ -50,7 +50,7 @@ export default function AddHoldingModal({
     const holding = {
       id: uid(),
       user_id: "",
-      type,
+      type: type === "stock-etf" ? "stock" : type,
       symbol: symbol.trim().toUpperCase(),
       quantity: qty,
       pricePaid: p,
@@ -95,7 +95,7 @@ export default function AddHoldingModal({
           Saved to your account so it follows you on every device.
         </p>
         <form onSubmit={submit} className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {TYPES.map((t) => (
               <button
                 type="button"

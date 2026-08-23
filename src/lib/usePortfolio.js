@@ -223,6 +223,22 @@ export function usePortfolio() {
     }
   }, [email]);
 
+  const updateHolding = useCallback(async (id, fields) => {
+    if (!email) return;
+    try {
+      await fetch("/api/portfolio/holdings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...fields }),
+      });
+    } catch (err) {
+      console.error("holdings update failed", err);
+    }
+    setHoldings((prev) =>
+      prev.map((h) => (h.id === id ? { ...h, ...fields } : h))
+    );
+  }, [email]);
+
   const setManualPrice = useCallback((symbol, value, currency) => {
     setManualPrices((prev) => ({
       ...prev,
@@ -268,6 +284,7 @@ export function usePortfolio() {
     refreshAll,
     addHolding,
     deleteHolding,
+    updateHolding,
     setManualPrice,
     changeCurrency,
   };

@@ -72,6 +72,27 @@ export default async function handler(req, res) {
     return res.json({ ok: true });
   }
 
-  res.setHeader("Allow", "GET, POST, DELETE");
+  if (req.method === "PUT") {
+    const { id, quantity } = req.body || {};
+    if (!id) return res.status(400).json({ error: "Holding id is required" });
+    const update = {};
+    if (quantity != null) {
+      const qty = Number(quantity);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        return res.status(400).json({ error: "Quantity must be a positive number" });
+      }
+      update.quantity = qty;
+    }
+    if (!Object.keys(update).length) {
+      return res.status(400).json({ error: "Nothing to update" });
+    }
+    await db.collection("holdings").updateOne(
+      { user_id: userId, id },
+      { $set: update }
+    );
+    return res.json({ ok: true });
+  }
+
+  res.setHeader("Allow", "GET, POST, PUT, DELETE");
   return res.status(405).end();
 }

@@ -22,6 +22,7 @@ export default function DashboardPage() {
     isRefreshing,
     addHolding,
     deleteHolding,
+    updateHolding,
     setManualPrice,
     changeCurrency,
     refreshAll,
@@ -91,6 +92,7 @@ export default function DashboardPage() {
             currency={currency}
             onDelete={deleteHolding}
             onSetManualPrice={(symbol, value) => setManualPrice(symbol, value, currency)}
+            onUpdateHolding={updateHolding}
           />
         </section>
       </main>

@@ -16,9 +16,10 @@ const TYPE_LABEL = {
   crypto: "Crypto",
 };
 
-export default function HoldingsTable({ rows, currency, onDelete, onSetManualPrice }) {
+export default function HoldingsTable({ rows, currency, onDelete, onSetManualPrice, onUpdateHolding }) {
   const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState("");
+  const [draftPrice, setDraftPrice] = useState("");
+  const [draftQty, setDraftQty] = useState("");
 
   if (!rows.length) {
     return (
@@ -69,7 +70,22 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-right nums">{h.quantity}</td>
+                  <td className="py-3 px-4 text-right nums">
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        value={draftQty}
+                        onChange={(e) => setDraftQty(e.target.value)}
+                        placeholder="Qty"
+                        type="number"
+                        step="any"
+                        min="0"
+                        className="w-20 bg-surface border border-border rounded px-2 py-1 text-right nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+                      />
+                    ) : (
+                      h.quantity
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-right nums">
                     {fmtMoney(h.pricePaid, h.priceCurrency || currency)}
                   </td>
@@ -77,36 +93,11 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                     {isEditing ? (
                       <div className="flex items-center gap-1 justify-end">
                         <input
-                          autoFocus
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
+                          value={draftPrice}
+                          onChange={(e) => setDraftPrice(e.target.value)}
                           placeholder={currency}
                           className="w-20 bg-surface border border-border rounded px-2 py-1 text-right nums focus:outline-none focus:ring-2 focus:ring-primary/60"
                         />
-                        <button
-                          className="p-1 text-gain"
-                          aria-label="Save price"
-                          onClick={() => {
-                            const v = parseFloat(draft);
-                            if (Number.isFinite(v) && v >= 0) {
-                              onSetManualPrice?.(h.symbol, v);
-                              setEditingId(null);
-                              setDraft("");
-                            }
-                          }}
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          className="p-1 text-loss"
-                          aria-label="Cancel"
-                          onClick={() => {
-                            setEditingId(null);
-                            setDraft("");
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
                       </div>
                     ) : currentPrice != null ? (
                       <div>
@@ -128,13 +119,45 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2 justify-end">
-                      {!isEditing && (
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="p-1.5 rounded hover:bg-surface2 text-gain"
+                            aria-label="Save changes"
+                            onClick={() => {
+                              const priceVal = draftPrice ? parseFloat(draftPrice) : null;
+                              const qtyVal = draftQty ? parseFloat(draftQty) : null;
+                              if (priceVal != null && (!Number.isFinite(priceVal) || priceVal < 0)) return;
+                              if (qtyVal != null && (!Number.isFinite(qtyVal) || qtyVal <= 0)) return;
+                              if (priceVal != null) onSetManualPrice?.(h.symbol, priceVal);
+                              if (qtyVal != null) onUpdateHolding?.(h.id, { quantity: qtyVal });
+                              setEditingId(null);
+                              setDraftPrice("");
+                              setDraftQty("");
+                            }}
+                          >
+                            <Check size={13} />
+                          </button>
+                          <button
+                            className="p-1.5 rounded hover:bg-surface2 text-loss"
+                            aria-label="Cancel"
+                            onClick={() => {
+                              setEditingId(null);
+                              setDraftPrice("");
+                              setDraftQty("");
+                            }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           className="p-1.5 rounded hover:bg-surface2 text-muted hover:text-white"
-                          aria-label="Set price manually"
+                          aria-label="Edit holding"
                           onClick={() => {
                             setEditingId(h.id);
-                            setDraft("");
+                            setDraftPrice(currentPrice != null ? String(currentPrice) : "");
+                            setDraftQty(String(h.quantity));
                           }}
                         >
                           <Pencil size={13} />
