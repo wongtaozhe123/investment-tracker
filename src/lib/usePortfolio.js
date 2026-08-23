@@ -168,38 +168,72 @@ export function usePortfolio() {
   }, [targetCurrency, holdings, manualPrices, prices]);
 
   const refreshAll = useCallback(async () => {
-    if (!holdings.length) return;
+    if (!holdings.length) return { failed: [] };
     setIsRefreshing(true);
     try {
       const next = {};
+      const failed = [];
       const target = settings?.currency || "USD";
       const vs = target.toLowerCase();
+      const now = Date.now();
+
+      // Separate crypto from non-crypto holdings
+      const cryptoHoldings = holdings.filter((h) => h.type === "crypto");
+      const otherHoldings = holdings.filter((h) => h.type !== "crypto");
+
+      // Fetch non-crypto (stocks/ETFs) individually
       await Promise.all(
-        holdings.map(async (h) => {
+        otherHoldings.map(async (h) => {
           try {
-            const url =
-              h.type === "crypto"
-                ? `/api/price/crypto?symbol=${h.symbol}&vs=${vs}`
-                : `/api/price/stock?symbol=${h.symbol}&vs=${target}`;
+            const url = `/api/price/stock?symbol=${h.symbol}&vs=${target}`;
             const res = await fetch(url);
-            if (!res.ok) return;
+            if (!res.ok) { failed.push(h.symbol); return; }
             const data = await res.json();
-            const payload = h.type === "crypto" ? data?.[h.symbol] : data;
-            if (!payload || typeof payload.price !== "number") return;
+            if (!data || typeof data.price !== "number") { failed.push(h.symbol); return; }
             next[h.symbol] = {
-              price: payload.price,
-              currency: payload.currency || target,
-              nativeCurrency: payload.nativeCurrency || payload.currency || target,
+              price: data.price,
+              currency: data.currency || target,
+              nativeCurrency: data.nativeCurrency || data.currency || target,
               source: "live",
-              updatedAt: Date.now(),
+              updatedAt: now,
             };
           } catch {
-            // individual symbol failures are non-fatal
+            failed.push(h.symbol);
           }
         })
       );
+
+      // Batch ALL crypto symbols into a single API call to avoid rate-limiting
+      if (cryptoHoldings.length) {
+        const cryptoSymbols = cryptoHoldings.map((h) => h.symbol).join(",");
+        try {
+          const url = `/api/price/crypto?symbol=${cryptoSymbols}&vs=${vs}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            for (const h of cryptoHoldings) {
+              const payload = data?.[h.symbol];
+              if (!payload || typeof payload.price !== "number") { failed.push(h.symbol); continue; }
+              next[h.symbol] = {
+                price: payload.price,
+                currency: payload.currency || target,
+                nativeCurrency: payload.nativeCurrency || payload.currency || target,
+                source: "live",
+                updatedAt: now,
+              };
+            }
+          } else {
+            // Batch request failed — mark all crypto as failed
+            for (const h of cryptoHoldings) failed.push(h.symbol);
+          }
+        } catch {
+            for (const h of cryptoHoldings) failed.push(h.symbol);
+        }
+      }
+
       setPrices((prev) => ({ ...prev, ...next }));
       setLastRefreshed(Date.now());
+      return { failed };
     } finally {
       setIsRefreshing(false);
     }

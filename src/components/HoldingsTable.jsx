@@ -78,7 +78,7 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                         onChange={(e) => setDraftQty(e.target.value)}
                         placeholder="Qty"
                         type="number"
-                        step="any"
+                        step="0.1"
                         min="0"
                         className="w-20 bg-surface border border-border rounded px-2 py-1 text-right nums focus:outline-none focus:ring-2 focus:ring-primary/60"
                       />
@@ -96,6 +96,8 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                           value={draftPrice}
                           onChange={(e) => setDraftPrice(e.target.value)}
                           placeholder={currency}
+                          type="number"
+                          step="1"
                           className="w-20 bg-surface border border-border rounded px-2 py-1 text-right nums focus:outline-none focus:ring-2 focus:ring-primary/60"
                         />
                       </div>

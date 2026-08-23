@@ -4,12 +4,38 @@ import { NextRequest, NextResponse } from 'next/server';
 // CoinGecko for a ticker -> id mapping we've already resolved.
 const idCache = new Map<string, string>();
 
+// Price cache: key = `${symbols_sorted}:${vs}`, value = { data, expiresAt }
+const PRICE_CACHE_TTL_MS = 60_000; // 1 minute
+const priceCache = new Map<string, { data: Record<string, any>; expiresAt: number }>();
+
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchWithRetry(url: string, retries = 2, delayMs = 1000): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 429 && attempt < retries) {
+        await sleep(delayMs * (attempt + 1));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastError = err as Error;
+      if (attempt < retries) await sleep(delayMs * (attempt + 1));
+    }
+  }
+  throw lastError || new Error('fetch failed');
+}
+
 async function resolveId(symbol: string): Promise<string> {
   const key = symbol.toUpperCase();
   const cached = idCache.get(key);
   if (cached) return cached;
 
-  const res = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(symbol)}`);
+  const res = await fetchWithRetry(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(symbol)}`);
   if (!res.ok) throw new Error('coingecko search failed');
   const data = await res.json();
   const coins = data.coins || [];
@@ -57,12 +83,20 @@ export async function GET(req: NextRequest) {
   const ids = [...new Set(Object.values(idMap).filter(Boolean))] as string[];
   let priceData: Record<string, Record<string, number>> = {};
 
-  if (ids.length) {
+  // Check price cache before hitting CoinGecko (sort copy to avoid mutating ids)
+  const cacheKey = `${[...ids].sort().join(',')}:${vs}`;
+  const cached = priceCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    priceData = cached.data;
+  } else if (ids.length) {
     try {
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vs},usd`
       );
-      if (res.ok) priceData = await res.json();
+      if (res.ok) {
+        priceData = await res.json();
+        priceCache.set(cacheKey, { data: priceData, expiresAt: Date.now() + PRICE_CACHE_TTL_MS });
+      }
     } catch {
       // fall through — result stays empty for these symbols
     }

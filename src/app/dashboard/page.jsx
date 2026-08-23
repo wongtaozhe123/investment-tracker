@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, RefreshCcw } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Plus, RefreshCcw, AlertTriangle, X } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import SummaryCards from "@/components/SummaryCards";
 import HoldingsTable from "@/components/HoldingsTable";
@@ -14,6 +14,17 @@ const CURRENCY_OPTIONS = Array.isArray(CURRENCIES) && CURRENCIES.length
 
 export default function DashboardPage() {
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  const showToast = useCallback((msg, type = "warn") => {
+    clearTimeout(toastTimer.current);
+    setToast({ msg, type });
+    toastTimer.current = setTimeout(() => setToast(null), 6000);
+  }, []);
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
   const {
     holdings,
     settings,
@@ -65,7 +76,12 @@ export default function DashboardPage() {
             </button>
             <button
               type="button"
-              onClick={refreshAll}
+              onClick={async () => {
+                const result = await refreshAll();
+                if (result?.failed?.length) {
+                  showToast(`Could not fetch prices for: ${result.failed.join(", ")}`);
+                }
+              }}
               disabled={isRefreshing || holdings.length === 0}
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-white transition hover:border-primary/50 hover:bg-surface2 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -96,6 +112,16 @@ export default function DashboardPage() {
           />
         </section>
       </main>
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg bg-warn/90 backdrop-blur-sm px-4 py-3 text-sm text-white shadow-lg max-w-md">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} className="ml-2 shrink-0 text-white/70 hover:text-white">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <AddHoldingModal
         open={open}
