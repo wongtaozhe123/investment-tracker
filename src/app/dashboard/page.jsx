@@ -106,6 +106,7 @@ export default function DashboardPage() {
           <HoldingsTable
             rows={rows}
             currency={currency}
+            totalValue={totals.totalValue || 0}
             onDelete={deleteHolding}
             onSetManualPrice={(symbol, value) => setManualPrice(symbol, value, currency)}
             onUpdateHolding={updateHolding}

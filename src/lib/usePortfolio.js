@@ -52,6 +52,7 @@ const computeTotals = (holdings, prices, manualPrices, fx, targetCurrency) => {
         gain: value != null ? value - cost : null,
         gainPct: value != null && cost ? ((value - cost) / cost) * 100 : null,
         priceInfo: priceRecord,
+        totalValue: acc.totalValue,
       });
       return acc;
     },

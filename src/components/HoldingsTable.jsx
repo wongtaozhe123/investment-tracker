@@ -16,7 +16,7 @@ const TYPE_LABEL = {
   crypto: "Crypto",
 };
 
-export default function HoldingsTable({ rows, currency, onDelete, onSetManualPrice, onUpdateHolding }) {
+export default function HoldingsTable({ rows, currency, totalValue, onDelete, onSetManualPrice, onUpdateHolding }) {
   const [editingId, setEditingId] = useState(null);
   const [draftPrice, setDraftPrice] = useState("");
   const [draftQty, setDraftQty] = useState("");
@@ -41,7 +41,7 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
               <th className="py-3 px-4 text-right">Price</th>
               <th className="py-3 px-4 text-right">Value</th>
               <th className="py-3 px-4 text-right">Gain / loss</th>
-              <th className="py-3 px-4 text-right">Updated</th>
+              <th className="py-3 px-4 text-right">Portfolio %</th>
               <th className="py-3 px-4" />
             </tr>
           </thead>
@@ -116,8 +116,8 @@ export default function HoldingsTable({ rows, currency, onDelete, onSetManualPri
                   <td className={`py-3 px-4 text-right nums ${gainColor}`}>
                     {gain != null ? `${fmtMoney(gain, currency)} (${fmtPct(gainPct)})` : "--"}
                   </td>
-                  <td className="py-3 px-4 text-right text-xs text-muted">
-                    {priceInfo ? relTime(priceInfo.updatedAt) : "never"}
+                  <td className="py-3 px-4 text-right nums">
+                    {totalValue > 0 ? ((marketValue / totalValue) * 100).toFixed(1) : "--"}%
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2 justify-end">

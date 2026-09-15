@@ -17,13 +17,6 @@ function toBase64Url(value) {
   return null;
 }
 
-function decodeCredentialID(id) {
-  if (!id) return null;
-  if (typeof id === "string") return Buffer.from(id, "base64url");
-  if (id instanceof Uint8Array) return Buffer.from(id);
-  return null;
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -40,7 +33,7 @@ export default async function handler(req, res) {
   const options = await generateAuthenticationOptions({
     rpID: process.env.WEBAUTHN_RP_ID || "localhost",
     allowCredentials: user.credentials.map((cred) => ({
-      id: decodeCredentialID(cred.credentialID),
+      id: cred.credentialID,
       transports: cred.transports,
     })),
     userVerification: "preferred",

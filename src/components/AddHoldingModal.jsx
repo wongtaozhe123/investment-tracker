@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { uid } from "@/lib/format";
+import TickerInput from "./TickerInput";
 
 const TYPES = ["stock-etf", "crypto"];
 const TYPE_LABEL = { "stock-etf": "Stock / ETF", crypto: "Crypto" };
@@ -114,11 +115,14 @@ export default function AddHoldingModal({
 
           <div>
             <label className="text-xs text-muted">Ticker</label>
-            <input
+            <TickerInput
               value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              placeholder="e.g. AAPL, D05.SI, BTC"
-              className="w-full mt-1 bg-surface border border-border rounded-lg px-3 py-2 nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+              onChange={setSymbol}
+              placeholder={`Search ${type === 'stock-etf' ? 'ticker' : 'crypto'}...`}
+              label="Ticker"
+              error={error || ""}
+              disabled={saving}
+              type={type} // "stock-etf" or "crypto"
             />
           </div>
 
